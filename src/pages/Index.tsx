@@ -11,7 +11,7 @@ const Index = () => {
       <div className="w-full max-w-lg">
         <div className="mb-8 flex items-center gap-3">
           <ClipboardList className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Todos</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Todos test 2 way sync</h1>
         </div>
 
         <div className="mb-6">
