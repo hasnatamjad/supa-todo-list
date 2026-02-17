@@ -35,6 +35,90 @@ export type Database = {
         }
         Relationships: []
       }
+      task_steps: {
+        Row: {
+          comment: string | null
+          completion_date: string | null
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["step_status"]
+          step_name: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          completion_date?: string | null
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["step_status"]
+          step_name: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          completion_date?: string | null
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["step_status"]
+          step_name?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_steps_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          category: string | null
+          created_at: string
+          daily_dedicated_time: Database["public"]["Enums"]["daily_time"] | null
+          id: string
+          is_completed: boolean
+          notes: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          task_name: string
+          task_type: Database["public"]["Enums"]["task_type"]
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          daily_dedicated_time?:
+            | Database["public"]["Enums"]["daily_time"]
+            | null
+          id?: string
+          is_completed?: boolean
+          notes?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          task_name: string
+          task_type?: Database["public"]["Enums"]["task_type"]
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          daily_dedicated_time?:
+            | Database["public"]["Enums"]["daily_time"]
+            | null
+          id?: string
+          is_completed?: boolean
+          notes?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          task_name?: string
+          task_type?: Database["public"]["Enums"]["task_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       todos: {
         Row: {
           completed: boolean
@@ -64,7 +148,20 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      daily_time:
+        | "30_min"
+        | "1_hour"
+        | "1_5_hour"
+        | "2_hour"
+        | "2_5_hour"
+        | "3_hour"
+        | "3_5_hour"
+        | "4_hour"
+        | "5_hour"
+        | "6_hour"
+      step_status: "unstarted" | "in_progress" | "completed"
+      task_status: "unstarted" | "in_progress" | "paused" | "finished"
+      task_type: "single_step" | "multi_step"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -191,6 +288,22 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      daily_time: [
+        "30_min",
+        "1_hour",
+        "1_5_hour",
+        "2_hour",
+        "2_5_hour",
+        "3_hour",
+        "3_5_hour",
+        "4_hour",
+        "5_hour",
+        "6_hour",
+      ],
+      step_status: ["unstarted", "in_progress", "completed"],
+      task_status: ["unstarted", "in_progress", "paused", "finished"],
+      task_type: ["single_step", "multi_step"],
+    },
   },
 } as const
