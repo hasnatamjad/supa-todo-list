@@ -79,7 +79,21 @@ export function useTaskSteps(taskId: string | null) {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["task_steps", taskId] }),
+    onMutate: async (updates) => {
+      await qc.cancelQueries({ queryKey: ["task_steps", taskId] });
+      const prev = qc.getQueryData<StepRow[]>(["task_steps", taskId]);
+      if (prev) {
+        const posMap = new Map(updates.map(u => [u.id, u.position]));
+        const next = [...prev].map(s => posMap.has(s.id) ? { ...s, position: posMap.get(s.id)! } : s)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        qc.setQueryData(["task_steps", taskId], next);
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["task_steps", taskId], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["task_steps", taskId] }),
   });
 
   return { steps, isLoading, addStep, updateStep, deleteStep, reorderSteps };
