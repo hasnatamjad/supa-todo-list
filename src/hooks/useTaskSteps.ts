@@ -19,7 +19,7 @@ export function useTaskSteps(taskId: string | null) {
         .from("task_steps")
         .select("*")
         .eq("task_id", taskId!)
-        .order("created_at", { ascending: true });
+        .order("position", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -61,5 +61,26 @@ export function useTaskSteps(taskId: string | null) {
     },
   });
 
-  return { steps, isLoading, addStep, updateStep };
+  const deleteStep = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("task_steps").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["task_steps", taskId] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+
+  const reorderSteps = useMutation({
+    mutationFn: async (updates: { id: string; position: number }[]) => {
+      for (const u of updates) {
+        const { error } = await supabase.from("task_steps").update({ position: u.position }).eq("id", u.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["task_steps", taskId] }),
+  });
+
+  return { steps, isLoading, addStep, updateStep, deleteStep, reorderSteps };
 }

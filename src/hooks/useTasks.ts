@@ -14,7 +14,7 @@ export function useTasks(completedFilter?: boolean) {
   const { data: tasks = [], isLoading } = useQuery<TaskRow[]>({
     queryKey: ["tasks", completedFilter],
     queryFn: async () => {
-      let q = supabase.from("tasks").select("*").order("created_at", { ascending: false });
+      let q = supabase.from("tasks").select("*").order("position", { ascending: true });
       if (completedFilter !== undefined) q = q.eq("is_completed", completedFilter);
       const { data, error } = await q;
       if (error) throw error;
@@ -39,5 +39,23 @@ export function useTasks(completedFilter?: boolean) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
-  return { tasks, isLoading, addTask, updateTask };
+  const deleteTask = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
+  const reorderTasks = useMutation({
+    mutationFn: async (updates: { id: string; position: number }[]) => {
+      for (const u of updates) {
+        const { error } = await supabase.from("tasks").update({ position: u.position }).eq("id", u.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
+  return { tasks, isLoading, addTask, updateTask, deleteTask, reorderTasks };
 }
