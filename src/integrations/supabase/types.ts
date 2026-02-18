@@ -41,6 +41,7 @@ export type Database = {
           completion_date: string | null
           created_at: string
           id: string
+          position: number | null
           status: Database["public"]["Enums"]["step_status"]
           step_name: string
           task_id: string
@@ -51,6 +52,7 @@ export type Database = {
           completion_date?: string | null
           created_at?: string
           id?: string
+          position?: number | null
           status?: Database["public"]["Enums"]["step_status"]
           step_name: string
           task_id: string
@@ -61,6 +63,7 @@ export type Database = {
           completion_date?: string | null
           created_at?: string
           id?: string
+          position?: number | null
           status?: Database["public"]["Enums"]["step_status"]
           step_name?: string
           task_id?: string
@@ -84,6 +87,7 @@ export type Database = {
           id: string
           is_completed: boolean
           notes: string | null
+          position: number | null
           status: Database["public"]["Enums"]["task_status"]
           task_name: string
           task_type: Database["public"]["Enums"]["task_type"]
@@ -98,6 +102,7 @@ export type Database = {
           id?: string
           is_completed?: boolean
           notes?: string | null
+          position?: number | null
           status?: Database["public"]["Enums"]["task_status"]
           task_name: string
           task_type?: Database["public"]["Enums"]["task_type"]
@@ -112,6 +117,7 @@ export type Database = {
           id?: string
           is_completed?: boolean
           notes?: string | null
+          position?: number | null
           status?: Database["public"]["Enums"]["task_status"]
           task_name?: string
           task_type?: Database["public"]["Enums"]["task_type"]

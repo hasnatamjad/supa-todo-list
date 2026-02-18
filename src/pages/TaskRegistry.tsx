@@ -4,7 +4,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Trash2, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const taskTypes = [
   { value: "single_step", label: "Single Step" },
@@ -41,7 +46,7 @@ interface DraftRow {
 const emptyDraft = (): DraftRow => ({ task_name: "", category: "", task_type: "single_step", status: "unstarted", daily_dedicated_time: "", notes: "" });
 
 export default function TaskRegistry() {
-  const { tasks, isLoading, addTask, updateTask } = useTasks(false);
+  const { tasks, isLoading, addTask, updateTask, deleteTask, reorderTasks } = useTasks(false);
   const [draft, setDraft] = useState<DraftRow>(emptyDraft());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<Record<string, any>>({});
@@ -82,7 +87,14 @@ export default function TaskRegistry() {
     updateTask.mutate({ id, is_completed: true, status: "finished" as any });
   };
 
-  // Auto-add when draft is filled
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const items = Array.from(tasks);
+    const [moved] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, moved);
+    reorderTasks.mutate(items.map((t, i) => ({ id: t.id, position: i })));
+  };
+
   useEffect(() => {
     if (draft.task_name.trim() && addTask.isSuccess) {
       setDraft(emptyDraft());
@@ -101,103 +113,131 @@ export default function TaskRegistry() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-8" />
                 <TableHead className="min-w-[180px]">Task Name</TableHead>
                 <TableHead className="min-w-[120px]">Category</TableHead>
                 <TableHead className="min-w-[130px]">Type</TableHead>
                 <TableHead className="min-w-[130px]">Status</TableHead>
                 <TableHead className="min-w-[120px]">Daily Time</TableHead>
                 <TableHead className="min-w-[160px]">Notes</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead className="w-[120px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {tasks.map((task) =>
-                editingId === task.id ? (
-                  <TableRow key={task.id}>
-                    <TableCell><Input value={editRow.task_name} onChange={(e) => setEditRow({ ...editRow, task_name: e.target.value })} className="h-8" /></TableCell>
-                    <TableCell><Input value={editRow.category || ""} onChange={(e) => setEditRow({ ...editRow, category: e.target.value })} className="h-8" /></TableCell>
-                    <TableCell>
-                      <Select value={editRow.task_type} onValueChange={(v) => setEditRow({ ...editRow, task_type: v })}>
-                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>{taskTypes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Select value={editRow.status} onValueChange={(v) => setEditRow({ ...editRow, status: v })}>
-                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>{statuses.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Select value={editRow.daily_dedicated_time || ""} onValueChange={(v) => setEditRow({ ...editRow, daily_dedicated_time: v })}>
-                        <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>{times.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell><Input value={editRow.notes || ""} onChange={(e) => setEditRow({ ...editRow, notes: e.target.value })} className="h-8" /></TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="ghost" onClick={saveEdit}><Check className="h-4 w-4" /></Button>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  <TableRow key={task.id} className="cursor-pointer" onDoubleClick={() => startEdit(task)}>
-                    <TableCell className="font-medium">{task.task_name}</TableCell>
-                    <TableCell>{task.category || "—"}</TableCell>
-                    <TableCell>{task.task_type === "multi_step" ? "Multi Step" : "Single Step"}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                        task.status === "in_progress" ? "bg-primary/10 text-primary" :
-                        task.status === "paused" ? "bg-yellow-100 text-yellow-800" :
-                        task.status === "finished" ? "bg-accent/10 text-accent" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
-                        {statuses.find((s) => s.value === task.status)?.label}
-                      </span>
-                    </TableCell>
-                    <TableCell>{times.find((t) => t.value === task.daily_dedicated_time)?.label || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{task.notes || "—"}</TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => markFinished(task.id)} className="text-xs h-7">
-                        Finish
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              )}
-              {/* New row */}
-              <TableRow>
-                <TableCell><Input placeholder="New task…" value={draft.task_name} onChange={(e) => setDraft({ ...draft, task_name: e.target.value })} onKeyDown={(e) => e.key === "Enter" && handleAddRow()} className="h-8" /></TableCell>
-                <TableCell><Input placeholder="Category" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className="h-8" /></TableCell>
-                <TableCell>
-                  <Select value={draft.task_type} onValueChange={(v) => setDraft({ ...draft, task_type: v })}>
-                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                    <SelectContent>{taskTypes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
-                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                    <SelectContent>{statuses.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select value={draft.daily_dedicated_time} onValueChange={(v) => setDraft({ ...draft, daily_dedicated_time: v })}>
-                    <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{times.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell><Input placeholder="Notes" value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} className="h-8" /></TableCell>
-                <TableCell>
-                  <Button size="sm" onClick={handleAddRow} disabled={!draft.task_name.trim() || addTask.isPending} className="text-xs h-7">
-                    {addTask.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            </TableBody>
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="tasks">
+                {(provided) => (
+                  <TableBody ref={provided.innerRef} {...provided.droppableProps}>
+                    {tasks.map((task, index) =>
+                      editingId === task.id ? (
+                        <TableRow key={task.id}>
+                          <TableCell />
+                          <TableCell><Input value={editRow.task_name} onChange={(e) => setEditRow({ ...editRow, task_name: e.target.value })} className="h-8" /></TableCell>
+                          <TableCell><Input value={editRow.category || ""} onChange={(e) => setEditRow({ ...editRow, category: e.target.value })} className="h-8" /></TableCell>
+                          <TableCell>
+                            <Select value={editRow.task_type} onValueChange={(v) => setEditRow({ ...editRow, task_type: v })}>
+                              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                              <SelectContent>{taskTypes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Select value={editRow.status} onValueChange={(v) => setEditRow({ ...editRow, status: v })}>
+                              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                              <SelectContent>{statuses.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Select value={editRow.daily_dedicated_time || ""} onValueChange={(v) => setEditRow({ ...editRow, daily_dedicated_time: v })}>
+                              <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                              <SelectContent>{times.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell><Input value={editRow.notes || ""} onChange={(e) => setEditRow({ ...editRow, notes: e.target.value })} className="h-8" /></TableCell>
+                          <TableCell><Button size="sm" variant="ghost" onClick={saveEdit}><Check className="h-4 w-4" /></Button></TableCell>
+                        </TableRow>
+                      ) : (
+                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                          {(prov) => (
+                            <TableRow ref={prov.innerRef} {...prov.draggableProps} className="cursor-pointer" onDoubleClick={() => startEdit(task)}>
+                              <TableCell {...prov.dragHandleProps}><GripVertical className="h-4 w-4 text-muted-foreground" /></TableCell>
+                              <TableCell className="font-medium">{task.task_name}</TableCell>
+                              <TableCell>{task.category || "—"}</TableCell>
+                              <TableCell>{task.task_type === "multi_step" ? "Multi Step" : "Single Step"}</TableCell>
+                              <TableCell>
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  task.status === "in_progress" ? "bg-primary/10 text-primary" :
+                                  task.status === "paused" ? "bg-yellow-100 text-yellow-800" :
+                                  task.status === "finished" ? "bg-accent/10 text-accent" :
+                                  "bg-muted text-muted-foreground"
+                                }`}>
+                                  {statuses.find((s) => s.value === task.status)?.label}
+                                </span>
+                              </TableCell>
+                              <TableCell>{times.find((t) => t.value === task.daily_dedicated_time)?.label || "—"}</TableCell>
+                              <TableCell className="text-muted-foreground text-xs">{task.notes || "—"}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="outline" onClick={() => markFinished(task.id)} className="text-xs h-7">Finish</Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-7 px-1.5 text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete task?</AlertDialogTitle>
+                                        <AlertDialogDescription>This will permanently delete "{task.task_name}" and all its steps.</AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => deleteTask.mutate(task.id)}>Delete</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </Draggable>
+                      )
+                    )}
+                    {provided.placeholder}
+                    {/* New row */}
+                    <TableRow>
+                      <TableCell />
+                      <TableCell><Input placeholder="New task…" value={draft.task_name} onChange={(e) => setDraft({ ...draft, task_name: e.target.value })} onKeyDown={(e) => e.key === "Enter" && handleAddRow()} className="h-8" /></TableCell>
+                      <TableCell><Input placeholder="Category" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className="h-8" /></TableCell>
+                      <TableCell>
+                        <Select value={draft.task_type} onValueChange={(v) => setDraft({ ...draft, task_type: v })}>
+                          <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>{taskTypes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
+                          <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>{statuses.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Select value={draft.daily_dedicated_time} onValueChange={(v) => setDraft({ ...draft, daily_dedicated_time: v })}>
+                          <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                          <SelectContent>{times.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell><Input placeholder="Notes" value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} className="h-8" /></TableCell>
+                      <TableCell>
+                        <Button size="sm" onClick={handleAddRow} disabled={!draft.task_name.trim() || addTask.isPending} className="text-xs h-7">
+                          {addTask.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                )}
+              </Droppable>
+            </DragDropContext>
           </Table>
         </div>
       )}
-      <p className="text-xs text-muted-foreground mt-3">Double-click a row to edit inline.</p>
+      <p className="text-xs text-muted-foreground mt-3">Double-click a row to edit inline. Drag to reorder.</p>
     </div>
   );
 }
