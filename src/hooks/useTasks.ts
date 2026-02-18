@@ -54,7 +54,21 @@ export function useTasks(completedFilter?: boolean) {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+    onMutate: async (updates) => {
+      await qc.cancelQueries({ queryKey: ["tasks", completedFilter] });
+      const prev = qc.getQueryData<TaskRow[]>(["tasks", completedFilter]);
+      if (prev) {
+        const posMap = new Map(updates.map(u => [u.id, u.position]));
+        const next = [...prev].map(t => posMap.has(t.id) ? { ...t, position: posMap.get(t.id)! } : t)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        qc.setQueryData(["tasks", completedFilter], next);
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["tasks", completedFilter], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
   return { tasks, isLoading, addTask, updateTask, deleteTask, reorderTasks };
