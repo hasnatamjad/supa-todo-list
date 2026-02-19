@@ -2,10 +2,13 @@ import { useState } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { useTaskSteps } from "@/hooks/useTaskSteps";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const times = [
   { value: "30_min", label: "30 min" },
@@ -36,6 +39,7 @@ function StepAdder({ taskId }: { taskId: string }) {
         <div key={s.id} className="text-xs text-muted-foreground flex gap-2">
           <span className={`inline-flex rounded-full px-1.5 py-0.5 ${s.status === "completed" ? "bg-accent/10 text-accent" : "bg-muted"}`}>{s.status}</span>
           <span>{s.step_name}</span>
+          {s.completion_date && <span className="text-muted-foreground/60">({s.completion_date})</span>}
         </div>
       ))}
       <div className="flex gap-2 mt-2">
@@ -47,7 +51,7 @@ function StepAdder({ taskId }: { taskId: string }) {
 }
 
 export default function FinishedTasks() {
-  const { tasks, isLoading } = useTasks(true);
+  const { tasks, isLoading, deleteTask } = useTasks(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
@@ -69,7 +73,9 @@ export default function FinishedTasks() {
                 <TableHead>Category</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Daily Time</TableHead>
+                <TableHead>Completed</TableHead>
                 <TableHead>Notes</TableHead>
+                <TableHead className="w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -85,11 +91,31 @@ export default function FinishedTasks() {
                     <TableCell>{task.category || "—"}</TableCell>
                     <TableCell>{task.task_type === "multi_step" ? "Multi Step" : "Single Step"}</TableCell>
                     <TableCell>{times.find((t) => t.value === task.daily_dedicated_time)?.label || "—"}</TableCell>
+                    <TableCell className="text-xs">{(task as any).completed_at || "—"}</TableCell>
                     <TableCell className="text-muted-foreground text-xs">{task.notes || "—"}</TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="ghost" className="h-7 px-1.5 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete task?</AlertDialogTitle>
+                            <AlertDialogDescription>This will permanently delete "{task.task_name}" and all its steps.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteTask.mutate(task.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
                   </TableRow>
                   {expandedId === task.id && task.task_type === "multi_step" && (
                     <TableRow key={`${task.id}-steps`}>
-                      <TableCell colSpan={6}>
+                      <TableCell colSpan={8}>
                         <StepAdder taskId={task.id} />
                       </TableCell>
                     </TableRow>

@@ -84,7 +84,7 @@ export default function TaskRegistry() {
   };
 
   const markFinished = (id: string) => {
-    updateTask.mutate({ id, is_completed: true, status: "finished" as any });
+    updateTask.mutate({ id, is_completed: true, status: "finished" as any, completed_at: new Date().toISOString().split("T")[0] } as any);
   };
 
   const onDragEnd = (result: DropResult) => {
