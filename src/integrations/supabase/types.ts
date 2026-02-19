@@ -82,6 +82,7 @@ export type Database = {
       tasks: {
         Row: {
           category: string | null
+          completed_at: string | null
           created_at: string
           daily_dedicated_time: Database["public"]["Enums"]["daily_time"] | null
           id: string
@@ -95,6 +96,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          completed_at?: string | null
           created_at?: string
           daily_dedicated_time?:
             | Database["public"]["Enums"]["daily_time"]
@@ -110,6 +112,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          completed_at?: string | null
           created_at?: string
           daily_dedicated_time?:
             | Database["public"]["Enums"]["daily_time"]

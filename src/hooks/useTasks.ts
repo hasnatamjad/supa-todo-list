@@ -11,6 +11,8 @@ export function useTasks(completedFilter?: boolean) {
   const { user } = useAuth();
   const qc = useQueryClient();
 
+  const statusOrder: Record<string, number> = { finished: 0, in_progress: 1, paused: 2, unstarted: 3 };
+
   const { data: tasks = [], isLoading } = useQuery<TaskRow[]>({
     queryKey: ["tasks", completedFilter],
     queryFn: async () => {
@@ -18,7 +20,7 @@ export function useTasks(completedFilter?: boolean) {
       if (completedFilter !== undefined) q = q.eq("is_completed", completedFilter);
       const { data, error } = await q;
       if (error) throw error;
-      return data;
+      return (data ?? []).sort((a, b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9));
     },
     enabled: !!user,
   });
