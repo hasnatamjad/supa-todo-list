@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import TaskRegistry from "./pages/TaskRegistry";
 import TaskList from "./pages/TaskList";
 import FinishedTasks from "./pages/FinishedTasks";
+import ExpenseTracker from "./pages/ExpenseTracker";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/" element={<DashboardLayout><TaskRegistry /></DashboardLayout>} />
             <Route path="/task-list" element={<DashboardLayout><TaskList /></DashboardLayout>} />
             <Route path="/finished" element={<DashboardLayout><FinishedTasks /></DashboardLayout>} />
+            <Route path="/expenses" element={<DashboardLayout><ExpenseTracker /></DashboardLayout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

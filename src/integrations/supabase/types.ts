@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      expenses: {
+        Row: {
+          created_at: string
+          expense_name: string
+          id: string
+          notes: string | null
+          package: string | null
+          position: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expense_name: string
+          id?: string
+          notes?: string | null
+          package?: string | null
+          position?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expense_name?: string
+          id?: string
+          notes?: string | null
+          package?: string | null
+          position?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       "podbank-test": {
         Row: {
           created_at: string
