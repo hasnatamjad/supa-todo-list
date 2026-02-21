@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { useExpenses } from "@/hooks/useExpenses";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,26 @@ export default function ExpenseTracker() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ expense_name: "", package: "", notes: "" });
 
+  // ✅ Calculate total
+  const total = useMemo(() => {
+    return expenses.reduce((sum, expense) => {
+      const value = Number(expense.package) || 0;
+      return sum + value;
+    }, 0);
+  }, [expenses]);
+
   const handleAdd = () => {
     if (!form.expense_name.trim()) {
       toast({ title: "Expense name is required", variant: "destructive" });
       return;
     }
+
     addExpense.mutate(
-      { expense_name: form.expense_name.trim(), package: form.package.trim() || undefined, notes: form.notes.trim() || undefined },
+      {
+        expense_name: form.expense_name.trim(),
+        package: form.package ? Number(form.package) : null,
+        notes: form.notes.trim() || undefined
+      },
       {
         onSuccess: () => {
           setForm({ expense_name: "", package: "", notes: "" });
@@ -40,7 +53,15 @@ export default function ExpenseTracker() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Expense Tracker</h1>
+        <div className="flex items-center gap-6">
+          <h1 className="text-2xl font-bold text-foreground">Expense Tracker</h1>
+
+          {/* ✅ TOTAL DISPLAY */}
+          <div className="text-lg font-semibold text-primary">
+            Total: {total.toLocaleString()}
+          </div>
+        </div>
+
         <Button size="sm" onClick={() => setShowAdd(true)} disabled={showAdd}>
           <Plus className="h-4 w-4 mr-1" /> Add Expense
         </Button>
@@ -57,6 +78,7 @@ export default function ExpenseTracker() {
               <TableHead className="w-16" />
             </TableRow>
           </TableHeader>
+
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="expenses">
               {(provided) => (
@@ -75,7 +97,8 @@ export default function ExpenseTracker() {
                       </TableCell>
                       <TableCell>
                         <Input
-                          placeholder="Package"
+                          placeholder="Amount"
+                          type="number"
                           value={form.package}
                           onChange={(e) => setForm(f => ({ ...f, package: e.target.value }))}
                           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -99,13 +122,18 @@ export default function ExpenseTracker() {
                       </TableCell>
                     </TableRow>
                   )}
+
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">Loading…</TableCell>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        Loading…
+                      </TableCell>
                     </TableRow>
                   ) : expenses.length === 0 && !showAdd ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">No expenses yet</TableCell>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No expenses yet
+                      </TableCell>
                     </TableRow>
                   ) : (
                     expenses.map((expense, index) => (
@@ -121,15 +149,23 @@ export default function ExpenseTracker() {
                                 <GripVertical className="h-4 w-4 text-muted-foreground" />
                               </span>
                             </TableCell>
-                            <TableCell className="font-medium">{expense.expense_name}</TableCell>
-                            <TableCell>{expense.package ?? "—"}</TableCell>
+                            <TableCell className="font-medium">
+                              {expense.expense_name}
+                            </TableCell>
+                            <TableCell>
+                              {expense.package ? Number(expense.package).toLocaleString() : "—"}
+                            </TableCell>
                             <TableCell>{expense.notes ?? "—"}</TableCell>
                             <TableCell>
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 className="text-destructive hover:text-destructive"
-                                onClick={() => deleteExpense.mutate(expense.id, { onSuccess: () => toast({ title: "Expense deleted" }) })}
+                                onClick={() =>
+                                  deleteExpense.mutate(expense.id, {
+                                    onSuccess: () => toast({ title: "Expense deleted" })
+                                  })
+                                }
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -139,6 +175,7 @@ export default function ExpenseTracker() {
                       </Draggable>
                     ))
                   )}
+
                   {provided.placeholder}
                 </TableBody>
               )}
