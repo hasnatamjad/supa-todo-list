@@ -1,4 +1,4 @@
-import { ClipboardList, ListTodo, CheckCircle2, LogOut } from "lucide-react";
+import { ClipboardList, ListTodo, CheckCircle2, LogOut, Wallet } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -18,6 +18,7 @@ const navItems = [
   { title: "Task Registry", url: "/", icon: ClipboardList },
   { title: "Task List", url: "/task-list", icon: ListTodo },
   { title: "Finished Tasks", url: "/finished", icon: CheckCircle2 },
+  { title: "Expense Tracker", url: "/expenses", icon: Wallet },
 ];
 
 export function AppSidebar() {
