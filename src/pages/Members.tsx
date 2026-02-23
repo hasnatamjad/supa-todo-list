@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client"; // adjust if different
 
 export default function Members() {
   const [users, setUsers] = useState<any[]>([]);
@@ -23,11 +23,7 @@ export default function Members() {
     <div>
       <h2>Members</h2>
 
-      <ul>
-        {users.map((user) => (
-          <li key={user.id}>{user.email}</li>
-        ))}
-      </ul>
+      <pre>{JSON.stringify(users, null, 2)}</pre>
     </div>
   );
 }
