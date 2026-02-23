@@ -6,9 +6,7 @@ export default function Members() {
 
   useEffect(() => {
     async function fetchUsers() {
-      const { data, error } = await supabase
-        .from("app_users")
-        .select("*");
+      const { data, error } = await supabase.from("profiles").select("*")
 
       console.log("DATA:", data);
       console.log("ERROR:", error);
