@@ -44,31 +44,28 @@ export default function Members() {
 
   // 🔥 Realtime subscription
   useEffect(() => {
-    if (!activeConversation) return;
+  if (!activeConversation) return;
 
-    const channel = supabase
-      .channel("realtime-messages")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
-        (payload) => {
-          const newMsg = payload.new;
+  const channel = supabase
+    .channel(`chat-${activeConversation}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `conversation_id=eq.${activeConversation}`,
+      },
+      (payload) => {
+        setMessages((prev) => [...prev, payload.new]);
+      }
+    )
+    .subscribe();
 
-          if (newMsg.conversation_id === activeConversation) {
-            setMessages((prev) => [...prev, newMsg]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeConversation]);
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [activeConversation]);
 
   async function handleChat(otherUserId: string) {
     if (!currentUserId) return;
@@ -110,23 +107,18 @@ export default function Members() {
   }
 
   async function handleSend() {
-    if (!newMessage.trim() || !activeConversation || !currentUserId) return;
+  if (!newMessage.trim() || !activeConversation || !currentUserId) return;
 
-    const { data } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id: activeConversation,
-        sender_id: currentUserId,
-        content: newMessage,
-      })
-      .select()
-      .single();
+  await supabase
+    .from("messages")
+    .insert({
+      conversation_id: activeConversation,
+      sender_id: currentUserId,
+      content: newMessage,
+    });
 
-    if (data) {
-      setMessages((prev) => [...prev, data]);
-      setNewMessage("");
-    }
-  }
+  setNewMessage("");
+}
 
   return (
     <div className="p-6">
