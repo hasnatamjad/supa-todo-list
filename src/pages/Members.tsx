@@ -105,12 +105,39 @@ export default function Members() {
         </CardContent>
       </Card>
 
-      {activeConversation && (
-        <div className="fixed bottom-4 right-4 bg-white border shadow-lg p-4 rounded-md">
-          <p className="text-sm">Conversation ID:</p>
-          <p className="text-xs break-all">{activeConversation}</p>
-        </div>
-      )}
+{activeConversation && (
+  <div className="fixed bottom-4 right-4 w-80 h-96 bg-background border rounded-xl shadow-xl flex flex-col">
+
+    {/* Header */}
+    <div className="flex items-center justify-between px-4 py-2 border-b">
+      <span className="text-sm font-medium">Chat</span>
+      <button
+        className="text-xs text-muted-foreground"
+        onClick={() => setActiveConversation(null)}
+      >
+        Close
+      </button>
+    </div>
+
+    {/* Messages Area (empty for now) */}
+    <div className="flex-1 p-3 overflow-y-auto text-sm text-muted-foreground">
+      No messages yet.
+    </div>
+
+    {/* Input */}
+    <div className="border-t p-2 flex gap-2">
+      <input
+        type="text"
+        placeholder="Type a message..."
+        className="flex-1 border rounded px-2 py-1 text-sm"
+      />
+      <button className="bg-primary text-white px-3 rounded text-sm">
+        Send
+      </button>
+    </div>
+
+  </div>
+)}
     </div>
   );
 }
