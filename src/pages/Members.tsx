@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client"; // adjust if different
+import { supabase } from "../integrations/supabase/client";
 
 export default function Members() {
   const [users, setUsers] = useState<any[]>([]);
