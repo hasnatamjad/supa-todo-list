@@ -29,8 +29,17 @@ const App = () => (
             <Route path="/task-list" element={<DashboardLayout><TaskList /></DashboardLayout>} />
             <Route path="/finished" element={<DashboardLayout><FinishedTasks /></DashboardLayout>} />
             <Route path="/expenses" element={<DashboardLayout><ExpenseTracker /></DashboardLayout>} />
-      <Route path="members" element={<Members />} />
-      <Route path="inbox" element={<Inbox />} />
+<Route path="/members" element={
+  <DashboardLayout>
+    <Members />
+  </DashboardLayout>
+} />
+
+<Route path="/inbox" element={
+  <DashboardLayout>
+    <Inbox />
+  </DashboardLayout>
+} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
