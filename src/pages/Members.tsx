@@ -1,15 +1,29 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../integrations/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 
 export default function Members() {
   const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchUsers() {
-      const { data, error } = await supabase.from("profiles").select("*")
-
-      console.log("DATA:", data);
-      console.log("ERROR:", error);
+      const { data } = await supabase
+        .from("profiles")
+        .select("*");
 
       if (data) setUsers(data);
     }
@@ -18,27 +32,32 @@ export default function Members() {
   }, []);
 
   return (
-  <div>
-    <h2>Members</h2>
-
-    <table border={1} cellPadding={8}>
-      <thead>
-        <tr>
-          <th>Email</th>
-          <th>Chat</th>
-        </tr>
-      </thead>
-      <tbody>
-        {users.map((user) => (
-          <tr key={user.id}>
-            <td>{user.email}</td>
-            <td>
-              <button>Chat</button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
+    <div className="p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Members</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Chat</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Button size="sm">Chat</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
