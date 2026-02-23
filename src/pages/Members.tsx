@@ -44,12 +44,17 @@ export default function Members() {
 async function handleChat(otherUserId: string) {
   if (!currentUserId) return;
 
+  // Always sort IDs to avoid duplicate conversations
+  const sortedUsers = [currentUserId, otherUserId].sort();
+  const user1 = sortedUsers[0];
+  const user2 = sortedUsers[1];
+
+  // Check if conversation exists
   const { data: existing } = await supabase
     .from("conversations")
     .select("*")
-    .or(
-      `and(user1.eq.${otherUserId},user2.eq.${currentUserId}),and(user1.eq.${currentUserId},user2.eq.${otherUserId})`
-    )
+    .eq("user1", user1)
+    .eq("user2", user2)
     .maybeSingle();
 
   if (existing) {
@@ -65,11 +70,12 @@ async function handleChat(otherUserId: string) {
     return;
   }
 
+  // Create conversation
   const { data: newConversation } = await supabase
     .from("conversations")
     .insert({
-      user1: currentUserId,
-      user2: otherUserId,
+      user1,
+      user2,
     })
     .select()
     .single();
