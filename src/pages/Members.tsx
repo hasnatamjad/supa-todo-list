@@ -23,6 +23,7 @@ export default function Members() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
+  // Init
   useEffect(() => {
     async function init() {
       const {
@@ -41,50 +42,72 @@ export default function Members() {
     init();
   }, []);
 
-async function handleChat(otherUserId: string) {
-  if (!currentUserId) return;
+  // 🔥 Realtime subscription
+  useEffect(() => {
+    if (!activeConversation) return;
 
-  // Always sort IDs to avoid duplicate conversations
-  const sortedUsers = [currentUserId, otherUserId].sort();
-  const user1 = sortedUsers[0];
-  const user2 = sortedUsers[1];
+    const channel = supabase
+      .channel("realtime-messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          const newMsg = payload.new;
 
-  // Check if conversation exists
-  const { data: existing } = await supabase
-    .from("conversations")
-    .select("*")
-    .eq("user1", user1)
-    .eq("user2", user2)
-    .maybeSingle();
+          if (newMsg.conversation_id === activeConversation) {
+            setMessages((prev) => [...prev, newMsg]);
+          }
+        }
+      )
+      .subscribe();
 
-  if (existing) {
-    setActiveConversation(existing.id);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeConversation]);
 
-    const { data: oldMessages } = await supabase
-      .from("messages")
+  async function handleChat(otherUserId: string) {
+    if (!currentUserId) return;
+
+    const sortedUsers = [currentUserId, otherUserId].sort();
+    const user1 = sortedUsers[0];
+    const user2 = sortedUsers[1];
+
+    const { data: existing } = await supabase
+      .from("conversations")
       .select("*")
-      .eq("conversation_id", existing.id)
-      .order("created_at", { ascending: true });
+      .eq("user1", user1)
+      .eq("user2", user2)
+      .maybeSingle();
 
-    setMessages(oldMessages || []);
-    return;
+    if (existing) {
+      setActiveConversation(existing.id);
+
+      const { data: oldMessages } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", existing.id)
+        .order("created_at", { ascending: true });
+
+      setMessages(oldMessages || []);
+      return;
+    }
+
+    const { data: newConversation } = await supabase
+      .from("conversations")
+      .insert({ user1, user2 })
+      .select()
+      .single();
+
+    if (newConversation) {
+      setActiveConversation(newConversation.id);
+      setMessages([]);
+    }
   }
-
-  // Create conversation
-  const { data: newConversation } = await supabase
-    .from("conversations")
-    .insert({
-      user1,
-      user2,
-    })
-    .select()
-    .single();
-
-  if (newConversation) {
-    setActiveConversation(newConversation.id);
-    setMessages([]);
-  }
-}
 
   async function handleSend() {
     if (!newMessage.trim() || !activeConversation || !currentUserId) return;
@@ -150,38 +173,51 @@ async function handleChat(otherUserId: string) {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 p-3 overflow-y-auto text-sm">
+          <div className="flex-1 p-3 overflow-y-auto text-sm space-y-2">
             {messages.length === 0 ? (
               <p className="text-muted-foreground">No messages yet.</p>
             ) : (
-              messages.map((msg) => (
-                <div key={msg.id} className="mb-2">
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(msg.created_at).toLocaleTimeString()}
+              messages.map((msg) => {
+                const isMe = msg.sender_id === currentUserId;
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[70%] px-3 py-2 rounded-lg text-sm ${
+                        isMe
+                          ? "bg-blue-100 text-black"
+                          : "bg-gray-100 text-black"
+                      }`}
+                    >
+                      <div>{msg.content}</div>
+                      <div className="text-[10px] text-gray-500 mt-1 text-right">
+                        {new Date(msg.created_at).toLocaleTimeString()}
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-muted px-2 py-1 rounded inline-block text-sm">
-                    {msg.content}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
           {/* Input */}
           <div className="border-t p-2 flex gap-2">
-<input
-  type="text"
-  value={newMessage}
-  onChange={(e) => setNewMessage(e.target.value)}
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSend();
-    }
-  }}
-  placeholder="Type a message..."
-  className="flex-1 border rounded px-2 py-1 text-sm"
-/>
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Type a message..."
+              className="flex-1 border rounded px-2 py-1 text-sm"
+            />
             <button
               onClick={handleSend}
               className="bg-primary text-white px-3 rounded text-sm"
