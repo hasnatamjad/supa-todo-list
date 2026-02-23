@@ -55,7 +55,14 @@ export default function Members() {
 
     if (existing) {
       setActiveConversation(existing.id);
-      setMessages([]); // reset
+
+      const { data: oldMessages } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", existing.id)
+        .order("created_at", { ascending: true });
+
+      setMessages(oldMessages || []);
       return;
     }
 
