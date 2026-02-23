@@ -18,10 +18,27 @@ export default function Members() {
   }, []);
 
   return (
-    <div>
-      <h2>Members</h2>
+  <div>
+    <h2>Members</h2>
 
-      <pre>{JSON.stringify(users, null, 2)}</pre>
-    </div>
-  );
+    <table border={1} cellPadding={8}>
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Chat</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.map((user) => (
+          <tr key={user.id}>
+            <td>{user.email}</td>
+            <td>
+              <button>Chat</button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
 }
