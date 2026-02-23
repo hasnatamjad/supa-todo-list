@@ -41,45 +41,44 @@ export default function Members() {
     init();
   }, []);
 
-  async function handleChat(otherUserId: string) {
-    if (!currentUserId) return;
+async function handleChat(otherUserId: string) {
+  if (!currentUserId) return;
 
-    const { data: existing } = await supabase
-      .from("conversations")
+  const { data: existing } = await supabase
+    .from("conversations")
+    .select("*")
+    .or(
+      `and(user1.eq.${otherUserId},user2.eq.${currentUserId}),and(user1.eq.${currentUserId},user2.eq.${otherUserId})`
+    )
+    .maybeSingle();
+
+  if (existing) {
+    setActiveConversation(existing.id);
+
+    const { data: oldMessages } = await supabase
+      .from("messages")
       .select("*")
-      .or(
-        `and(user1.eq.${otherUserId},user2.eq.${currentUserId}),
-         and(user1.eq.${currentUserId},user2.eq.${otherUserId})`
-      )
-      .maybeSingle();
+      .eq("conversation_id", existing.id)
+      .order("created_at", { ascending: true });
 
-    if (existing) {
-      setActiveConversation(existing.id);
-
-      const { data: oldMessages } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", existing.id)
-        .order("created_at", { ascending: true });
-
-      setMessages(oldMessages || []);
-      return;
-    }
-
-    const { data: newConversation } = await supabase
-      .from("conversations")
-      .insert({
-        user1: currentUserId,
-        user2: otherUserId,
-      })
-      .select()
-      .single();
-
-    if (newConversation) {
-      setActiveConversation(newConversation.id);
-      setMessages([]);
-    }
+    setMessages(oldMessages || []);
+    return;
   }
+
+  const { data: newConversation } = await supabase
+    .from("conversations")
+    .insert({
+      user1: currentUserId,
+      user2: otherUserId,
+    })
+    .select()
+    .single();
+
+  if (newConversation) {
+    setActiveConversation(newConversation.id);
+    setMessages([]);
+  }
+}
 
   async function handleSend() {
     if (!newMessage.trim() || !activeConversation || !currentUserId) return;
@@ -164,13 +163,19 @@ export default function Members() {
 
           {/* Input */}
           <div className="border-t p-2 flex gap-2">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 border rounded px-2 py-1 text-sm"
-            />
+<input
+  type="text"
+  value={newMessage}
+  onChange={(e) => setNewMessage(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
+  }}
+  placeholder="Type a message..."
+  className="flex-1 border rounded px-2 py-1 text-sm"
+/>
             <button
               onClick={handleSend}
               className="bg-primary text-white px-3 rounded text-sm"
