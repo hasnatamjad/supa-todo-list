@@ -20,6 +20,8 @@ export default function Members() {
   const [users, setUsers] = useState<any[]>([]);
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
     async function init() {
@@ -29,12 +31,9 @@ export default function Members() {
 
       setCurrentUserId(user?.id || null);
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("*");
+      const { data } = await supabase.from("profiles").select("*");
 
       if (data) {
-        // remove current user from list
         setUsers(data.filter((u) => u.id !== user?.id));
       }
     }
@@ -45,7 +44,6 @@ export default function Members() {
   async function handleChat(otherUserId: string) {
     if (!currentUserId) return;
 
-    // check if conversation already exists
     const { data: existing } = await supabase
       .from("conversations")
       .select("*")
@@ -57,10 +55,10 @@ export default function Members() {
 
     if (existing) {
       setActiveConversation(existing.id);
+      setMessages([]); // reset
       return;
     }
 
-    // create new conversation
     const { data: newConversation } = await supabase
       .from("conversations")
       .insert({
@@ -72,6 +70,26 @@ export default function Members() {
 
     if (newConversation) {
       setActiveConversation(newConversation.id);
+      setMessages([]);
+    }
+  }
+
+  async function handleSend() {
+    if (!newMessage.trim() || !activeConversation || !currentUserId) return;
+
+    const { data } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: activeConversation,
+        sender_id: currentUserId,
+        content: newMessage,
+      })
+      .select()
+      .single();
+
+    if (data) {
+      setMessages((prev) => [...prev, data]);
+      setNewMessage("");
     }
   }
 
@@ -105,39 +123,57 @@ export default function Members() {
         </CardContent>
       </Card>
 
-{activeConversation && (
-  <div className="fixed bottom-4 right-4 w-80 h-96 bg-background border rounded-xl shadow-xl flex flex-col">
+      {activeConversation && (
+        <div className="fixed bottom-4 right-4 w-80 h-96 bg-background border rounded-xl shadow-xl flex flex-col">
 
-    {/* Header */}
-    <div className="flex items-center justify-between px-4 py-2 border-b">
-      <span className="text-sm font-medium">Chat</span>
-      <button
-        className="text-xs text-muted-foreground"
-        onClick={() => setActiveConversation(null)}
-      >
-        Close
-      </button>
-    </div>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-2 border-b">
+            <span className="text-sm font-medium">Chat</span>
+            <button
+              className="text-xs text-muted-foreground"
+              onClick={() => setActiveConversation(null)}
+            >
+              Close
+            </button>
+          </div>
 
-    {/* Messages Area (empty for now) */}
-    <div className="flex-1 p-3 overflow-y-auto text-sm text-muted-foreground">
-      No messages yet.
-    </div>
+          {/* Messages */}
+          <div className="flex-1 p-3 overflow-y-auto text-sm">
+            {messages.length === 0 ? (
+              <p className="text-muted-foreground">No messages yet.</p>
+            ) : (
+              messages.map((msg) => (
+                <div key={msg.id} className="mb-2">
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(msg.created_at).toLocaleTimeString()}
+                  </div>
+                  <div className="bg-muted px-2 py-1 rounded inline-block text-sm">
+                    {msg.content}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
 
-    {/* Input */}
-    <div className="border-t p-2 flex gap-2">
-      <input
-        type="text"
-        placeholder="Type a message..."
-        className="flex-1 border rounded px-2 py-1 text-sm"
-      />
-      <button className="bg-primary text-white px-3 rounded text-sm">
-        Send
-      </button>
-    </div>
+          {/* Input */}
+          <div className="border-t p-2 flex gap-2">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 border rounded px-2 py-1 text-sm"
+            />
+            <button
+              onClick={handleSend}
+              className="bg-primary text-white px-3 rounded text-sm"
+            >
+              Send
+            </button>
+          </div>
 
-  </div>
-)}
+        </div>
+      )}
     </div>
   );
 }
